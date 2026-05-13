@@ -60,7 +60,7 @@ export default function App() {
       <header className="border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
           <div className="flex items-center gap-3">
-            <span className="text-amber-500 font-bold text-lg tracking-tight">⚖ DebtSimplr</span>
+            <span className="text-amber-500 font-bold text-lg tracking-tight">⚖ FairShare</span>
             <span className="hidden sm:block text-xs text-slate-700 border border-slate-800
                              rounded px-2 py-0.5">DBMS Project</span>
           </div>

@@ -1,4 +1,4 @@
-# DebtSimplr — Debt Simplification & Group Expense Tracker
+# FairShare — Debt Simplification & Group Expense Tracker
 
 Full 3-tier DBMS project: PostgreSQL · Node.js/Express · React/Tailwind
 
