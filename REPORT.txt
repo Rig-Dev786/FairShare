@@ -1,0 +1,14 @@
+FairShare setup report
+Date: 2026-05-13
+
+Status
+- PostgreSQL 16 installed and running via Homebrew services.
+- Database created: debttracker.
+- Schema loaded successfully from database/schema.sql.
+- Tables present: users, groups, groupmembers, expenses, expensesplits, netbalances.
+- Backend env configured: backend/.env (no DB password).
+
+Next steps
+- Configure frontend env: frontend/.env from frontend/.env.example (VITE_API_URL).
+- Start backend: npm install && npm run dev (in backend/).
+- Start frontend: npm install && npm run dev (in frontend/).

@@ -27,16 +27,16 @@ export function Toast({ toasts, dismiss }) {
         <div
           key={t.id}
           onClick={() => dismiss(t.id)}
-          className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl
-            text-sm font-medium cursor-pointer max-w-sm transition-all
+          className={`pointer-events-auto flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl
+            text-sm font-semibold cursor-pointer max-w-sm transition-all
             ${t.type === 'error'
-              ? 'bg-red-950 border border-red-700 text-red-200'
-              : 'bg-emerald-950 border border-emerald-700 text-emerald-200'
+              ? 'bg-red-50 border border-red-200 text-red-700'
+              : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
             }`}
         >
           {t.type === 'error'
-            ? <span className="text-red-400 text-base">✕</span>
-            : <span className="text-emerald-400 text-base">✓</span>
+            ? <span className="text-red-500 text-base">✕</span>
+            : <span className="text-emerald-500 text-base">✓</span>
           }
           {t.message}
         </div>
@@ -64,12 +64,12 @@ export function useToast() {
 // ─── Label + Input ────────────────────────────────────────────
 export function Field({ label, error, children, required }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold tracking-widest uppercase text-slate-400">
+    <div className="flex flex-col gap-2">
+      <label className="text-xs font-semibold tracking-widest uppercase text-slate-500">
         {label}{required && <span className="text-amber-500 ml-1">*</span>}
       </label>
       {children}
-      {error && <p className="text-xs text-red-400 mt-0.5">{error}</p>}
+      {error && <p className="text-xs text-red-500 mt-0.5">{error}</p>}
     </div>
   );
 }
@@ -77,9 +77,9 @@ export function Field({ label, error, children, required }) {
 export function Input({ className = '', ...props }) {
   return (
     <input
-      className={`w-full bg-slate-900 border border-slate-700 text-slate-100
-        placeholder-slate-600 rounded-lg px-3.5 py-2.5 text-sm
-        focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/40
+      className={`w-full bg-white border border-slate-200 text-slate-900
+        placeholder-slate-400 rounded-2xl px-5 py-3.5 text-sm
+        focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10
         transition-colors disabled:opacity-50 ${className}`}
       {...props}
     />
@@ -89,9 +89,9 @@ export function Input({ className = '', ...props }) {
 export function Select({ className = '', children, ...props }) {
   return (
     <select
-      className={`w-full bg-slate-900 border border-slate-700 text-slate-100
-        rounded-lg px-3.5 py-2.5 text-sm
-        focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/40
+      className={`w-full bg-white border border-slate-200 text-slate-900
+        rounded-2xl px-5 py-3.5 text-sm
+        focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10
         transition-colors disabled:opacity-50 appearance-none cursor-pointer ${className}`}
       {...props}
     >
@@ -106,28 +106,28 @@ export function MultiSelect({ options, value, onChange, placeholder = 'Select…
     onChange(value.includes(id) ? value.filter((v) => v !== id) : [...value, id]);
 
   return (
-    <div className="bg-slate-900 border border-slate-700 rounded-lg overflow-hidden
-                    max-h-48 overflow-y-auto focus-within:border-amber-500 transition-colors">
+    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden
+                    max-h-56 overflow-y-auto focus-within:border-slate-900 transition-colors">
       {options.length === 0 && (
-        <p className="text-slate-500 text-sm px-3.5 py-2.5">{placeholder}</p>
+        <p className="text-slate-400 text-sm px-5 py-3.5">{placeholder}</p>
       )}
       {options.map((opt) => {
         const selected = value.includes(opt.value);
         return (
           <label
             key={opt.value}
-            className={`flex items-center gap-3 px-3.5 py-2.5 cursor-pointer
+            className={`flex items-center gap-3 px-5 py-3.5 cursor-pointer
               text-sm transition-colors select-none
               ${selected
-                ? 'bg-amber-500/10 text-amber-300'
-                : 'text-slate-300 hover:bg-slate-800'
+                ? 'bg-slate-900/5 text-slate-900'
+                : 'text-slate-600 hover:bg-slate-50'
               }`}
           >
-            <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0
+            <span className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0
               transition-colors
-              ${selected ? 'bg-amber-500 border-amber-500' : 'border-slate-600'}`}>
+              ${selected ? 'bg-slate-900 border-slate-900' : 'border-slate-300'}`}>
               {selected && (
-                <svg className="w-2.5 h-2.5 text-slate-900" fill="none" viewBox="0 0 24 24"
+                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor" strokeWidth={3}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
@@ -152,15 +152,15 @@ export function Button({
   children, loading, variant = 'primary',
   className = '', disabled, ...props
 }) {
-  const base = `inline-flex items-center justify-center gap-2 px-5 py-2.5
-    rounded-lg text-sm font-semibold transition-all focus:outline-none
+  const base = `inline-flex items-center justify-center gap-2 px-6 py-3.5
+    rounded-full text-sm font-semibold transition-all focus:outline-none
     disabled:opacity-50 disabled:cursor-not-allowed`;
 
   const variants = {
-    primary: 'bg-amber-500 hover:bg-amber-400 text-slate-900 shadow-lg shadow-amber-500/20 active:scale-95',
-    secondary: 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 active:scale-95',
-    ghost: 'text-slate-400 hover:text-slate-200 hover:bg-slate-800 active:scale-95',
-    danger: 'bg-red-600 hover:bg-red-500 text-white active:scale-95',
+    primary: 'bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/20 active:scale-[0.99]',
+    secondary: 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 active:scale-[0.99]',
+    ghost: 'text-slate-500 hover:text-slate-900 hover:bg-slate-100 active:scale-[0.99]',
+    danger: 'bg-red-600 hover:bg-red-500 text-white active:scale-[0.99]',
   };
 
   return (
@@ -178,7 +178,7 @@ export function Button({
 // ─── Card ─────────────────────────────────────────────────────
 export function Card({ children, className = '' }) {
   return (
-    <div className={`bg-slate-850 border border-slate-800 rounded-2xl p-6 ${className}`}>
+    <div className={`bg-white border border-slate-200 rounded-2xl p-8 ${className}`}>
       {children}
     </div>
   );
@@ -188,7 +188,7 @@ export function Card({ children, className = '' }) {
 export function SectionTitle({ children, sub }) {
   return (
     <div className="mb-6">
-      <h2 className="text-xl font-bold text-slate-100 tracking-tight">{children}</h2>
+      <h2 className="text-xl font-bold text-slate-900 tracking-tight">{children}</h2>
       {sub && <p className="text-sm text-slate-500 mt-1">{sub}</p>}
     </div>
   );
@@ -196,12 +196,12 @@ export function SectionTitle({ children, sub }) {
 
 // ─── Avatar ───────────────────────────────────────────────────
 const COLORS = [
-  'bg-amber-500/20 text-amber-300',
-  'bg-teal-500/20 text-teal-300',
-  'bg-violet-500/20 text-violet-300',
-  'bg-rose-500/20 text-rose-300',
-  'bg-sky-500/20 text-sky-300',
-  'bg-emerald-500/20 text-emerald-300',
+  'bg-amber-100 text-amber-700',
+  'bg-teal-100 text-teal-700',
+  'bg-indigo-100 text-indigo-700',
+  'bg-rose-100 text-rose-700',
+  'bg-sky-100 text-sky-700',
+  'bg-emerald-100 text-emerald-700',
 ];
 
 export function Avatar({ name = '', size = 'md' }) {
@@ -220,24 +220,24 @@ export function Avatar({ name = '', size = 'md' }) {
 export function EmptyState({ icon, title, sub }) {
   return (
     <div className="flex flex-col items-center gap-3 py-12 text-center">
-      <div className="text-4xl opacity-30">{icon}</div>
-      <p className="text-slate-400 font-medium">{title}</p>
-      {sub && <p className="text-slate-600 text-sm">{sub}</p>}
+      <div className="text-4xl opacity-40">{icon}</div>
+      <p className="text-slate-700 font-semibold">{title}</p>
+      {sub && <p className="text-slate-500 text-sm">{sub}</p>}
     </div>
   );
 }
 
 // ─── Badge ────────────────────────────────────────────────────
-export function Badge({ children, variant = 'default' }) {
+export function Badge({ children, variant = 'default', className = '' }) {
   const variants = {
-    default: 'bg-slate-800 text-slate-400',
-    amber:   'bg-amber-500/15 text-amber-400',
-    green:   'bg-emerald-500/15 text-emerald-400',
-    red:     'bg-red-500/15 text-red-400',
-    blue:    'bg-sky-500/15 text-sky-400',
+    default: 'bg-slate-100 text-slate-600',
+    amber:   'bg-amber-100 text-amber-700',
+    green:   'bg-emerald-100 text-emerald-700',
+    red:     'bg-red-100 text-red-700',
+    blue:    'bg-sky-100 text-sky-700',
   };
   return (
-    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${variants[variant]}`}>
+    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${variants[variant]} ${className}`}>
       {children}
     </span>
   );

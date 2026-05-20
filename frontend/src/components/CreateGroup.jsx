@@ -72,18 +72,18 @@ export default function CreateGroup({ onCreated, users = [], groups = [], onMemb
   }));
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="flex flex-col gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* Create Group */}
         <Card>
-          <SectionTitle sub="Set up a new expense-sharing group">
+          <SectionTitle>
             Create Group
           </SectionTitle>
 
-          <form onSubmit={submitGroup} noValidate className="flex flex-col gap-4">
+          <form onSubmit={submitGroup} noValidate className="flex flex-col gap-6">
             {gErrors.api && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg px-4 py-3 text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-4 text-sm">
                 {gErrors.api}
               </div>
             )}
@@ -120,18 +120,18 @@ export default function CreateGroup({ onCreated, users = [], groups = [], onMemb
 
         {/* Add Members */}
         <Card>
-          <SectionTitle sub="Add users to an existing group">
+          <SectionTitle>
             Add Members
           </SectionTitle>
 
-          <form onSubmit={submitMembers} noValidate className="flex flex-col gap-4">
+          <form onSubmit={submitMembers} noValidate className="flex flex-col gap-6">
             {mError && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg px-4 py-3 text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-4 text-sm">
                 {mError}
               </div>
             )}
             {mSuccess && (
-              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-lg px-4 py-3 text-sm">
+              <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl px-5 py-4 text-sm">
                 {mSuccess}
               </div>
             )}
@@ -157,7 +157,7 @@ export default function CreateGroup({ onCreated, users = [], groups = [], onMemb
             </Field>
 
             {mUserIds.length > 0 && (
-              <p className="text-xs text-amber-400">
+              <p className="text-xs text-slate-500">
                 {mUserIds.length} user{mUserIds.length > 1 ? 's' : ''} selected
               </p>
             )}
@@ -171,24 +171,24 @@ export default function CreateGroup({ onCreated, users = [], groups = [], onMemb
 
       {/* Groups list */}
       <Card>
-        <SectionTitle sub={`${groups.length} groups total`}>
+        <SectionTitle>
           All Groups
         </SectionTitle>
         {groups.length === 0 ? (
-          <EmptyState icon="🏷️" title="No groups yet" sub="Create your first group above." />
+          <EmptyState icon="" title="No groups yet" sub="Create your first group above." />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {groups.map((g) => (
               <div key={g.group_id}
-                className="p-4 rounded-xl bg-slate-900 border border-slate-800
-                           hover:border-slate-700 transition-colors">
-                <p className="font-semibold text-slate-200 text-sm truncate">{g.group_name}</p>
+                className="p-5 rounded-2xl bg-slate-50 border border-slate-200
+                           hover:border-slate-300 transition-colors">
+                <p className="font-semibold text-slate-900 text-sm truncate">{g.group_name}</p>
                 {g.description && (
-                  <p className="text-xs text-slate-500 mt-0.5 truncate">{g.description}</p>
+                  <p className="text-xs text-slate-500 mt-1 truncate">{g.description}</p>
                 )}
                 <div className="flex items-center gap-2 mt-3">
                   <Badge variant="amber">{g.member_count} member{g.member_count !== 1 ? 's' : ''}</Badge>
-                  <span className="text-xs text-slate-600">by {g.created_by_name}</span>
+                  <span className="text-xs text-slate-500">by {g.created_by_name}</span>
                 </div>
               </div>
             ))}

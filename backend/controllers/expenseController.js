@@ -2,6 +2,31 @@ const pool                         = require('../db/pool');
 const { toCents, equalSplitCents } = require('../utils/money');
 const { minimizeCashFlow }         = require('../services/debtSimplification');
 
+async function rebuildNetBalances(client, groupId) {
+  await client.query('DELETE FROM NetBalances WHERE group_id = $1', [groupId]);
+  await client.query(
+    `INSERT INTO NetBalances (group_id, user_id, balance, updated_at)
+     SELECT group_id, user_id, SUM(delta) AS balance, NOW()
+     FROM (
+       SELECT e.group_id, es.user_id, -es.owed_amount AS delta
+       FROM ExpenseSplits es
+       JOIN Expenses e ON e.expense_id = es.expense_id
+       WHERE e.group_id = $1
+         AND e.is_deleted = FALSE
+         AND es.user_id <> e.paid_by
+       UNION ALL
+       SELECT e.group_id, e.paid_by AS user_id, es.owed_amount AS delta
+       FROM ExpenseSplits es
+       JOIN Expenses e ON e.expense_id = es.expense_id
+       WHERE e.group_id = $1
+         AND e.is_deleted = FALSE
+         AND es.user_id <> e.paid_by
+     ) t
+     GROUP BY group_id, user_id`,
+    [groupId]
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 //  POST /api/expenses
 //
@@ -55,16 +80,23 @@ async function createExpense(req, res) {
       owed_cents: centAmounts[i],
     }));
   } else if (split_method === 'EXACT') {
-    const sumCents = participants.reduce((acc, p) => acc + toCents(p.owed_amount), 0);
+    const owedCents = participants.map((p) => ({
+      user_id: p.user_id,
+      owed_cents: toCents(p.owed_amount),
+    }));
+
+    const invalid = owedCents.find((p) => !Number.isFinite(p.owed_cents) || p.owed_cents <= 0);
+    if (invalid) {
+      return res.status(400).json({ error: 'Each participant must have a valid owed_amount.' });
+    }
+
+    const sumCents = owedCents.reduce((acc, p) => acc + p.owed_cents, 0);
     if (Math.abs(sumCents - totalCents) > 1) {
       return res.status(400).json({
         error: `Splits sum (${sumCents}¢) ≠ total (${totalCents}¢).`,
       });
     }
-    splits = participants.map((p) => ({
-      user_id:    p.user_id,
-      owed_cents: toCents(p.owed_amount),
-    }));
+    splits = owedCents;
   } else {
     return res.status(400).json({ error: 'Unsupported split_method. Use EQUAL or EXACT.' });
   }
@@ -218,6 +250,80 @@ async function getGroupBalances(req, res) {
 }
 
 // ─────────────────────────────────────────────────────────────
+//  GET /api/groups/:groupId/expenses
+// ─────────────────────────────────────────────────────────────
+async function listGroupExpenses(req, res) {
+  const { groupId } = req.params;
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         e.expense_id,
+         e.group_id,
+        e.paid_by,
+         e.title,
+         e.total_amount,
+         e.category,
+         e.split_method,
+         e.is_deleted,
+         e.deleted_at,
+         e.created_at,
+         u.full_name  AS paid_by_name,
+         u.username   AS paid_by_username,
+         COUNT(es.split_id) AS participant_count,
+         COALESCE(SUM(es.owed_amount), 0) AS splits_total
+       FROM Expenses e
+       JOIN Users u ON u.user_id = e.paid_by
+       LEFT JOIN ExpenseSplits es ON es.expense_id = e.expense_id
+       WHERE e.group_id = $1
+       GROUP BY e.expense_id, u.full_name, u.username
+       ORDER BY e.created_at DESC`,
+      [groupId]
+    );
+    return res.json({ expenses: rows });
+  } catch (err) {
+    console.error('[listGroupExpenses]', err.message);
+    return res.status(500).json({ error: 'Failed to fetch expenses.' });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  DELETE /api/expenses/:expenseId (soft delete)
+// ─────────────────────────────────────────────────────────────
+async function softDeleteExpense(req, res) {
+  const { expenseId } = req.params;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { rows } = await client.query(
+      `UPDATE Expenses
+          SET is_deleted = TRUE,
+              deleted_at = NOW()
+        WHERE expense_id = $1
+          AND is_deleted = FALSE
+        RETURNING group_id`,
+      [expenseId]
+    );
+
+    if (rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Expense not found or already deleted.' });
+    }
+
+    await rebuildNetBalances(client, rows[0].group_id);
+    await client.query('COMMIT');
+
+    return res.json({ message: 'Expense deleted and balances updated.' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[softDeleteExpense]', err.message);
+    return res.status(500).json({ error: 'Failed to delete expense.' });
+  } finally {
+    client.release();
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 //  GET /api/groups
 // ─────────────────────────────────────────────────────────────
 async function listGroups(req, res) {
@@ -247,5 +353,7 @@ module.exports = {
   getSettlements,
   getFoodExpenses,
   getGroupBalances,
+  listGroupExpenses,
+  softDeleteExpense,
   listGroups,
 };

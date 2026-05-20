@@ -16,8 +16,10 @@ router.post('/groups/:groupId/members',       groupCtrl.addMembers);
 router.get('/groups/:groupId/balances',       expenseCtrl.getGroupBalances);
 router.get('/groups/:groupId/settlements',    expenseCtrl.getSettlements);
 router.get('/groups/:groupId/expenses/food',  expenseCtrl.getFoodExpenses);
+router.get('/groups/:groupId/expenses',       expenseCtrl.listGroupExpenses);
 
 // ── Expense routes ────────────────────────────────────────────
 router.post('/expenses',                      expenseCtrl.createExpense);
+router.delete('/expenses/:expenseId',         expenseCtrl.softDeleteExpense);
 
 module.exports = router;

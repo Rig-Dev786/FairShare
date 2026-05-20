@@ -42,6 +42,7 @@ export default function AddExpense({ groups = [], users = [], onCreated }) {
   const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState([]);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [exactSplits, setExactSplits] = useState({}); // user_id -> string amount
 
   const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setErrors((e) => ({ ...e, [k]: '' })); };
 
@@ -52,11 +53,24 @@ export default function AddExpense({ groups = [], users = [], onCreated }) {
     api.get(`/groups/${form.group_id}/members`)
       .then((d) => {
         setMembers(d.members || []);
-        setParticipants((d.members || []).map((m) => m.user_id)); // default: all selected
+        const ids = (d.members || []).map((m) => m.user_id);
+        setParticipants(ids); // default: all selected
+        const initSplits = {};
+        ids.forEach((id) => { initSplits[id] = ''; });
+        setExactSplits(initSplits);
       })
       .catch(() => setMembers([]))
       .finally(() => setMembersLoading(false));
   }, [form.group_id]);
+
+  useEffect(() => {
+    setExactSplits((prev) => {
+      const next = { ...prev };
+      participants.forEach((id) => { if (!(id in next)) next[id] = ''; });
+      Object.keys(next).forEach((id) => { if (!participants.includes(id)) delete next[id]; });
+      return next;
+    });
+  }, [participants]);
 
   const memberOptions = members.map((m) => ({
     value: m.user_id,
@@ -65,12 +79,19 @@ export default function AddExpense({ groups = [], users = [], onCreated }) {
 
   // Live equal-split preview
   const totalCents  = toCents(form.total_amount);
-  const splitPreview = useMemo(
-    () => form.split_method === 'EQUAL' && participants.length > 0 && totalCents > 0
-      ? calcEqualSplits(totalCents, participants)
-      : {},
-    [form.split_method, participants, totalCents]
-  );
+  const splitPreview = useMemo(() => {
+    if (participants.length === 0 || totalCents <= 0) return {};
+    if (form.split_method === 'EQUAL') {
+      return calcEqualSplits(totalCents, participants);
+    }
+    const result = {};
+    participants.forEach((id) => { result[id] = exactSplits[id] || '0'; });
+    return result;
+  }, [form.split_method, participants, totalCents, exactSplits]);
+
+  const exactTotalCents = useMemo(() => (
+    participants.reduce((sum, id) => sum + toCents(exactSplits[id]), 0)
+  ), [participants, exactSplits]);
 
   const validate = () => {
     const e = {};
@@ -80,6 +101,14 @@ export default function AddExpense({ groups = [], users = [], onCreated }) {
     if (!form.total_amount || isNaN(+form.total_amount) || +form.total_amount <= 0)
                                                  e.total_amount = 'Enter a valid positive amount.';
     if (participants.length === 0)               e.participants = 'Select at least one participant.';
+    if (form.split_method === 'EXACT' && participants.length > 0) {
+      const missing = participants.filter((id) => !exactSplits[id] || isNaN(+exactSplits[id]));
+      if (missing.length > 0) {
+        e.exact = 'Enter an amount for every participant.';
+      } else if (Math.abs(exactTotalCents - totalCents) > 1) {
+        e.exact = 'Exact split total must equal the expense total.';
+      }
+    }
     return e;
   };
 
@@ -97,7 +126,10 @@ export default function AddExpense({ groups = [], users = [], onCreated }) {
         category:     form.category,
         split_method: form.split_method,
         notes:        form.notes.trim() || undefined,
-        participants: participants.map((id) => ({ user_id: id })),
+        participants: participants.map((id) => ({
+          user_id: id,
+          owed_amount: form.split_method === 'EXACT' ? exactSplits[id] : undefined,
+        })),
       };
 
       const data = await api.post('/expenses', body);
@@ -108,6 +140,10 @@ export default function AddExpense({ groups = [], users = [], onCreated }) {
         ...f, paid_by: '', title: '', total_amount: '',
         category: 'Food', notes: '', split_method: 'EQUAL',
       }));
+      setExactSplits((prev) => Object.keys(prev).reduce((acc, id) => {
+        acc[id] = '';
+        return acc;
+      }, {}));
     } catch (err) {
       setErrors({ api: err.message });
     } finally {
@@ -116,17 +152,17 @@ export default function AddExpense({ groups = [], users = [], onCreated }) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
       {/* Form */}
       <Card className="lg:col-span-3">
-        <SectionTitle sub="ACID transaction · trigger-based balance update">
+        <SectionTitle>
           Add Expense
         </SectionTitle>
 
-        <form onSubmit={submit} noValidate className="flex flex-col gap-4">
+        <form onSubmit={submit} noValidate className="flex flex-col gap-6">
           {errors.api && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400
-                            rounded-lg px-4 py-3 text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-700
+                            rounded-2xl px-5 py-4 text-sm">
               {errors.api}
             </div>
           )}
@@ -144,7 +180,7 @@ export default function AddExpense({ groups = [], users = [], onCreated }) {
 
             <Field label="Paid By" error={errors.paid_by} required>
               {membersLoading
-                ? <div className="flex items-center gap-2 py-2.5 text-slate-500 text-sm">
+                ? <div className="flex items-center gap-2 py-3 text-slate-500 text-sm">
                     <Spinner size="sm" /> Loading members…
                   </div>
                 : <Select value={form.paid_by} onChange={(e) => set('paid_by', e.target.value)}
@@ -184,26 +220,61 @@ export default function AddExpense({ groups = [], users = [], onCreated }) {
 
           {/* Split method */}
           <Field label="Split Method">
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               {['EQUAL', 'EXACT'].map((m) => (
                 <button type="button" key={m}
                   onClick={() => set('split_method', m)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors border
+                  className={`flex-1 py-3 rounded-2xl text-sm font-semibold transition-colors border
                     ${form.split_method === m
-                      ? 'bg-amber-500 border-amber-500 text-slate-900'
-                      : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600'
+                      ? 'bg-slate-900 border-slate-900 text-white'
+                      : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
                     }`}
                 >
-                  {m === 'EQUAL' ? '⚖ Equal Split' : '✏ Exact Amounts'}
+                  {m === 'EQUAL' ? 'Equal Split' : 'Exact Amounts'}
                 </button>
               ))}
             </div>
           </Field>
 
+          {form.split_method === 'EXACT' && (
+            <Field label="Exact Amounts" error={errors.exact} required>
+              <div className="flex flex-col gap-3">
+                {participants.map((uid) => {
+                  const member = members.find((m) => m.user_id === uid);
+                  if (!member) return null;
+                  return (
+                    <div key={uid} className="flex items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-slate-900 truncate">
+                          {member.full_name}
+                        </p>
+                        <p className="text-xs text-slate-500">@{member.username}</p>
+                      </div>
+                      <div className="w-32">
+                        <Input
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={exactSplits[uid]}
+                          onChange={(e) => setExactSplits((prev) => ({ ...prev, [uid]: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-200">
+                  <span>Exact total</span>
+                  <span className="font-semibold text-slate-700">{fmt(exactTotalCents / 100)}</span>
+                </div>
+              </div>
+            </Field>
+          )}
+
           {/* Participants */}
           <Field label="Participants" error={errors.participants} required>
             {membersLoading
-              ? <div className="flex items-center gap-2 py-2.5 text-slate-500 text-sm">
+              ? <div className="flex items-center gap-2 py-3 text-slate-500 text-sm">
                   <Spinner size="sm" /> Loading…
                 </div>
               : <MultiSelect
@@ -229,12 +300,12 @@ export default function AddExpense({ groups = [], users = [], onCreated }) {
 
       {/* Split Preview */}
       <Card className="lg:col-span-2">
-        <SectionTitle sub="Live preview · integer-cent precision">
+        <SectionTitle>
           Split Preview
         </SectionTitle>
 
         {participants.length === 0 || totalCents <= 0 ? (
-          <div className="text-slate-600 text-sm text-center py-10">
+          <div className="text-slate-500 text-sm text-center py-10">
             Select group, amount and participants to preview the split.
           </div>
         ) : (
@@ -255,21 +326,21 @@ export default function AddExpense({ groups = [], users = [], onCreated }) {
 
               return (
                 <div key={uid}
-                  className="flex items-center justify-between gap-3 p-3 rounded-lg
-                             bg-slate-900 border border-slate-800">
+                  className="flex items-center justify-between gap-3 p-4 rounded-2xl
+                             bg-slate-50 border border-slate-200">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400
+                    <div className="w-6 h-6 rounded-full bg-slate-900 text-white
                                     text-xs flex items-center justify-center font-bold shrink-0">
                       {idx + 1}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-200 truncate">{member.full_name}</p>
+                      <p className="text-sm font-semibold text-slate-900 truncate">{member.full_name}</p>
                       <p className="text-xs text-slate-500">@{member.username}</p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-semibold text-amber-400">{fmt(share)}</p>
-                    <p className="text-xs text-slate-600">{pct}%</p>
+                    <p className="text-sm font-semibold text-slate-900">{fmt(share)}</p>
+                    <p className="text-xs text-slate-500">{pct}%</p>
                   </div>
                 </div>
               );
@@ -277,15 +348,15 @@ export default function AddExpense({ groups = [], users = [], onCreated }) {
 
             {/* Penny-rounding notice */}
             {form.split_method === 'EQUAL' && totalCents % participants.length !== 0 && (
-              <p className="text-xs text-slate-600 mt-2 text-center">
+              <p className="text-xs text-slate-500 mt-2 text-center">
                 ±₹0.01 penny-rounding distributed to first participant(s).
               </p>
             )}
 
             {/* Total check */}
-            <div className="mt-3 pt-3 border-t border-slate-800 flex justify-between">
+            <div className="mt-4 pt-4 border-t border-slate-200 flex justify-between">
               <span className="text-xs text-slate-500">Splits total</span>
-              <span className="text-xs font-semibold text-slate-300">
+              <span className="text-xs font-semibold text-slate-700">
                 {fmt(Object.values(splitPreview).reduce((s, v) => s + parseFloat(v), 0))}
               </span>
             </div>
@@ -293,8 +364,8 @@ export default function AddExpense({ groups = [], users = [], onCreated }) {
         )}
 
         {/* DB flow info */}
-        <div className="mt-6 pt-4 border-t border-slate-800 flex flex-col gap-2">
-          <p className="text-xs text-slate-600 uppercase tracking-wider font-semibold">
+        <div className="mt-6 pt-4 border-t border-slate-200 flex flex-col gap-2">
+          <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
             What happens on submit
           </p>
           {[
@@ -306,7 +377,7 @@ export default function AddExpense({ groups = [], users = [], onCreated }) {
             'Minimum Cash Flow recalculated',
           ].map((step, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-500
+              <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-500
                                text-xs flex items-center justify-center shrink-0">
                 {i + 1}
               </span>

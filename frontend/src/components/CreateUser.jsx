@@ -48,17 +48,17 @@ export default function CreateUser({ onCreated, users = [] }) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
       {/* Form */}
       <Card className="lg:col-span-3">
-        <SectionTitle sub="Add a new member to the system">
+        <SectionTitle>
           Create User
         </SectionTitle>
 
-        <form onSubmit={submit} noValidate className="flex flex-col gap-4">
+        <form onSubmit={submit} noValidate className="flex flex-col gap-6">
           {errors.api && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400
-                            rounded-lg px-4 py-3 text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-700
+                            rounded-2xl px-5 py-4 text-sm">
               {errors.api}
             </div>
           )}
@@ -98,21 +98,21 @@ export default function CreateUser({ onCreated, users = [] }) {
 
       {/* Users list */}
       <Card className="lg:col-span-2">
-        <SectionTitle sub={`${users.length} registered`}>
+        <SectionTitle>
           All Users
         </SectionTitle>
 
         {users.length === 0 ? (
-          <p className="text-slate-600 text-sm text-center py-8">No users yet.</p>
+          <p className="text-slate-500 text-sm text-center py-10">No users yet.</p>
         ) : (
-          <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
+          <div className="flex flex-col gap-3 max-h-96 overflow-y-auto pr-1">
             {users.map((u) => (
               <div key={u.user_id}
-                className="flex items-center gap-3 p-3 rounded-lg bg-slate-900/60
-                           border border-slate-800">
+                className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50
+                           border border-slate-200">
                 <Avatar name={u.full_name} />
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-200 truncate">{u.full_name}</p>
+                  <p className="text-sm font-semibold text-slate-900 truncate">{u.full_name}</p>
                   <p className="text-xs text-slate-500">@{u.username}</p>
                 </div>
                 <Badge variant="default" className="ml-auto shrink-0">member</Badge>

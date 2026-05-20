@@ -3,17 +3,17 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api } from './api';
-import { Toast, useToast, Spinner } from './components/ui';
+import { Toast, useToast, Spinner, Avatar } from './components/ui';
 import CreateUser          from './components/CreateUser';
 import CreateGroup         from './components/CreateGroup';
 import AddExpense          from './components/AddExpense';
 import SettlementDashboard from './components/SettlementDashboard';
 
 const TABS = [
-  { id: 'dashboard', label: 'Dashboard',   icon: '⚖' },
-  { id: 'expense',   label: 'Add Expense', icon: '＋' },
-  { id: 'group',     label: 'Groups',      icon: '👥' },
-  { id: 'user',      label: 'Users',       icon: '🙍' },
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'expense',   label: 'Add Expense' },
+  { id: 'group',     label: 'Groups' },
+  { id: 'user',      label: 'Users' },
 ];
 
 export default function App() {
@@ -47,60 +47,89 @@ export default function App() {
 
   if (booting) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center gap-3 text-slate-400">
-        <Spinner size="lg" className="text-amber-500" />
-        <span className="text-sm font-mono">Connecting to API…</span>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center gap-3 text-slate-500">
+        <Spinner size="lg" className="text-slate-900" />
+        <span className="text-sm font-semibold tracking-wide">Connecting to API…</span>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-mono">
+  const activeTab = TABS.find((t) => t.id === tab);
 
-      <header className="border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
-          <div className="flex items-center gap-3">
-            <span className="text-amber-500 font-bold text-lg tracking-tight">⚖ FairShare</span>
-            <span className="hidden sm:block text-xs text-slate-700 border border-slate-800
-                             rounded px-2 py-0.5">DBMS Project</span>
+  return (
+    <div className="min-h-screen bg-gray-50 text-slate-900">
+      <div className="flex min-h-screen">
+        <aside className="hidden md:flex w-64 flex-col border-r border-slate-200 bg-white px-4 py-6">
+          <div className="flex items-center gap-2 px-3">
+            <span className="text-lg font-semibold tracking-tight">FairShare</span>
           </div>
-          <nav className="flex items-center">
+          <nav className="mt-8 flex flex-col gap-2">
             {TABS.map((t) => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className={`flex items-center gap-1.5 px-3 sm:px-4 py-4
-                  text-xs sm:text-sm font-medium transition-colors border-b-2 -mb-px
-                  ${tab === t.id
-                    ? 'border-amber-500 text-amber-400'
-                    : 'border-transparent text-slate-500 hover:text-slate-300'
-                  }`}>
-                <span>{t.icon}</span>
-                <span className="hidden sm:inline">{t.label}</span>
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold
+                  transition-all ${tab === t.id
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+              >
+                <span>{t.label}</span>
               </button>
             ))}
           </nav>
-        </div>
-      </header>
+        </aside>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-        {tab === 'dashboard' && <SettlementDashboard groups={groups} />}
-        {tab === 'expense'   && (
-          <AddExpense groups={groups} users={users} onCreated={onExpenseCreated} />
-        )}
-        {tab === 'group'     && (
-          <CreateGroup users={users} groups={groups}
-            onCreated={onGroupCreated} onMembersAdded={onMembersAdded} />
-        )}
-        {tab === 'user'      && (
-          <CreateUser users={users} onCreated={onUserCreated} />
-        )}
-      </main>
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
+            <div className="flex items-center justify-between px-6 py-4">
+              <div className="flex items-center gap-3 text-sm text-slate-500">
+                <span className="text-slate-400">Dashboard</span>
+                <span className="text-slate-300">/</span>
+                <span className="font-semibold text-slate-900">{activeTab?.label}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Avatar name="" />
+              </div>
+            </div>
+            <div className="md:hidden px-6 pb-4">
+              <div className="flex items-center gap-2 overflow-x-auto">
+                {TABS.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setTab(t.id)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold
+                      transition-all whitespace-nowrap ${tab === t.id
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-slate-100 text-slate-600'
+                      }`}
+                  >
+                    <span>{t.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </header>
 
-      <footer className="border-t border-slate-900 py-3 px-4 sm:px-6">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <p className="text-xs text-slate-700">PostgreSQL · Express · React · Tailwind CSS</p>
-          <p className="text-xs text-slate-700">{users.length} users · {groups.length} groups</p>
+          <main className="flex-1 overflow-y-auto">
+            <div className="max-w-5xl mx-auto px-6 py-10">
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8">
+                {tab === 'dashboard' && <SettlementDashboard groups={groups} />}
+                {tab === 'expense'   && (
+                  <AddExpense groups={groups} users={users} onCreated={onExpenseCreated} />
+                )}
+                {tab === 'group'     && (
+                  <CreateGroup users={users} groups={groups}
+                    onCreated={onGroupCreated} onMembersAdded={onMembersAdded} />
+                )}
+                {tab === 'user'      && (
+                  <CreateUser users={users} onCreated={onUserCreated} />
+                )}
+              </div>
+            </div>
+          </main>
         </div>
-      </footer>
+      </div>
 
       <Toast toasts={toasts} dismiss={dismiss} />
     </div>

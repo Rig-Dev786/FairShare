@@ -69,6 +69,8 @@ CREATE TABLE Expenses (
   category      expense_category  NOT NULL DEFAULT 'Other',
   split_method  split_method      NOT NULL DEFAULT 'EQUAL',
   notes         TEXT,
+  is_deleted    BOOLEAN           NOT NULL DEFAULT FALSE,
+  deleted_at    TIMESTAMPTZ,
   created_at    TIMESTAMPTZ       NOT NULL DEFAULT NOW(),
 
   CONSTRAINT chk_positive_amount CHECK (total_amount > 0),
